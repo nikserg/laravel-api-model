@@ -16,7 +16,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "CrmCoreClients\\AuthLaravel\\AuthLaravelServiceProvider"
+                "nikserg\\LaravelApiModel\\ApiModelServiceProvider"
             ]
         }
     },
