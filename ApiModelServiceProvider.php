@@ -19,6 +19,7 @@ class ApiModelServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        die('opk');
         // Add database driver.
         $this->app->resolving('db', function ($db) {
             $db->extend('api', function ($config, $name) {
