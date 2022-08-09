@@ -1,0 +1,20 @@
+{
+    "name": "nikserg/laravel-api-model",
+    "description": "Allows to create pseudo-Eloquent models, which are fetched via API from remote server",
+    "keywords": [],
+    "authors": [
+        {
+            "name": "Nikita Zarubin",
+            "email": "nikitadimitrov@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "nikserg\\LaravelApiModel\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.1",
+        "guzzlehttp/guzzle": "^7.4"
+    }
+}
