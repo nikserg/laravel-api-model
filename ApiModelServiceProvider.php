@@ -19,10 +19,10 @@ class ApiModelServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        die('opk');
         // Add database driver.
         $this->app->resolving('db', function ($db) {
             $db->extend('api', function ($config, $name) {
+                die(__FILE__.__LINE__);
                 $config['name'] = $name;
 
                 return new Connection($config);
@@ -32,6 +32,7 @@ class ApiModelServiceProvider extends ServiceProvider
         // Add connector for queue support.
         $this->app->resolving('queue', function ($queue) {
             $queue->addConnector('api', function () {
+                die(__FILE__.__LINE__);
                 return new ApiModelQueueConnector($this->app['db']);
             });
         });
