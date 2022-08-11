@@ -9,9 +9,21 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ApiModel extends Model
 {
+    /**
+     * While fetching from remote server, we need to set all attributes of model
+     *
+     * @var bool
+     */
+    protected static $unguarded = true;
+    public $incrementing = false;
+
     public function newEloquentBuilder($query)
     {
         return new ApiModelEloquentBuilder($query);
     }
 
+    public function qualifyColumn($column)
+    {
+        return $column; //Otherwise here would be <table name>.id
+    }
 }

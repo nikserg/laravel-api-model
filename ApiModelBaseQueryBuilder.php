@@ -2,9 +2,11 @@
 
 namespace nikserg\LaravelApiModel;
 
+use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
+use nikserg\LaravelApiModel\Exception\NotImplemented;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
 use nikserg\LaravelApiModel\Model\Meta;
@@ -58,6 +60,30 @@ class ApiModelBaseQueryBuilder extends Builder
     }
 
     /**
+     * Get single record from server
+     *
+     *
+     * @param $id
+     * @return array|null
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function getOne($id): ?array
+    {
+        try {
+            $response = $this->connection->getClient()->request('GET',
+                $this->from . '/' . $id);
+        } catch (ClientException $exception) {
+            if ($exception->getCode() == 404) {
+                return null;
+            }
+        }
+        $body = $response->getBody()->getContents();
+        $decoded = Utils::jsonDecode($body, true);
+
+        return $decoded['data'];
+    }
+
+    /**
      * @param \Illuminate\Database\ConnectionInterface $connection Connection to remote API
      */
     public function __construct(ConnectionInterface $connection)
@@ -68,11 +94,51 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function get($columns = ['*'])
     {
-        return collect($this->list()->models);
+        if (!empty($this->wheres)) {
+            foreach ($this->wheres as $where) {
+                if ($where[0] === $this->defaultKeyName() && $where[1] === '=') {
+                    //get by id
+                    $record = $this->getOne($where[2]);
+
+                    //if no record, return empty array
+                    if (!$record) {
+                        return collect([]);
+                    }
+
+                    //if there is record, return single-element array
+                    return collect([$record]);
+                } else {
+                    throw new NotImplemented('Find clause ' . print_r($where, true) . ' is not supported');
+                }
+            }
+        }
+
+        $models = $this->list()->models;
+        //dd(collect($models));
+        return collect($models);
     }
 
     public function getCountForPagination($columns = ['*'])
     {
         return $this->list()->meta->total;
+    }
+
+
+    public function where($column, $operator = null, $value = null, $boolean = 'and')
+    {
+        if ($column != $this->defaultKeyName()) {
+            throw new NotImplemented('Only find by `' . $this->defaultKeyName() . '` is available so far. You\'ve tried to find by ' . $column);
+        }
+        if (strtolower($boolean) != 'and') {
+            throw new NotImplemented('OR where clauses are not available so far');
+        }
+        if ($operator != '=') {
+            throw new NotImplemented('Only `=` operator is available so far');
+        }
+        $this->wheres = [
+            [$column, $operator, $value, $boolean],
+        ];
+
+        return $this;
     }
 }
