@@ -4,11 +4,14 @@ namespace nikserg\LaravelApiModel;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Extend this model to use Eloquent with API-requests
+ */
 class ApiModel extends Model
 {
-
-    protected function newBaseQueryBuilder()
+    public function newEloquentBuilder($query)
     {
-        return new ApiModelQueryBuilder();
+        return new ApiModelEloquentBuilder($query);
     }
+
 }

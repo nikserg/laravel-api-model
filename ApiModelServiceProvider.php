@@ -4,15 +4,23 @@ namespace nikserg\LaravelApiModel;
 
 use CrmCoreClients\Auth\AuthClient;
 use CrmCoreCommon\Permissions\Common;
+use Illuminate\Container\Container;
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Foundation\Application;
+use Illuminate\Queue\QueueManager;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Регистрируем новый драйвер БД
+ * Register new database driver
+ *
  */
 class ApiModelServiceProvider extends ServiceProvider
 {
+    public function boot()
+    {
+        ApiModel::setConnectionResolver($this->app['db']);
+    }
 
     /**
      * Register the service provider.
@@ -20,45 +28,13 @@ class ApiModelServiceProvider extends ServiceProvider
     public function register()
     {
         // Add database driver.
-        $this->app->resolving('db', function ($db) {
-            $db->extend('api', function ($config, $name) {
-                die(__FILE__.__LINE__);
-                $config['name'] = $name;
-
-                return new Connection($config);
+        $this->app->resolving('db', function (DatabaseManager $db)
+        {
+            $db->extend('api', function ($config, $name)
+            {
+                return new Connection($config['baseUri'], $config['verify'] ?? true, $config['configurator'] ?? null);
             });
         });
 
-        // Add connector for queue support.
-        $this->app->resolving('queue', function ($queue) {
-            $queue->addConnector('api', function () {
-                die(__FILE__.__LINE__);
-                return new ApiModelQueueConnector($this->app['db']);
-            });
-        });
     }
-//    public function boot()
-//    {
-//        //Конфиг
-//        $this->publishes([__DIR__ . '/config.php' => config_path('itcom-jwt.php')]);
-//        $this->mergeConfigFrom(__DIR__ . '/config.php', 'itcom-jwt');
-//
-//        //Клиент для подключения к сервису авторизации
-//        $this->app->singleton(AuthClient::class, function (Application $application)
-//        {
-//            return new (config('itcom-jwt.clientClass'))(
-//                config('itcom-jwt.clientHost'),
-//                config('itcom-jwt.jwtPublicKey')
-//            );
-//        });
-//
-//        //User Provider
-//        Auth::provider('itcom-jwt', function (Application $app, array $config)
-//        {
-//            return new ItcomUserProvider($app->make(AuthClient::class));
-//        });
-//
-//        //Gates
-//        AuthHelper::registerAsGates(Common::class);
-//    }
 }
