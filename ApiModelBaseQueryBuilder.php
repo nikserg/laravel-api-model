@@ -3,6 +3,7 @@
 namespace nikserg\LaravelApiModel;
 
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
@@ -33,7 +34,11 @@ class ApiModelBaseQueryBuilder extends Builder
             $response = $this->connection->getClient()->request('GET',
                 $this->from);
             $body = $response->getBody()->getContents();
-            $decoded = Utils::jsonDecode($body, true);
+            try {
+                $decoded = Utils::jsonDecode($body, true);
+            } catch (InvalidArgumentException) {
+                throw new InvalidArgumentException('Not JSON answer: ' . $body);
+            }
 
             $this->listOfModels = new ListOfModels(
                 links: new Links(
