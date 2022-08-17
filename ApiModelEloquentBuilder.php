@@ -24,4 +24,11 @@ class ApiModelEloquentBuilder extends Builder
     {
         throw new NotImplemented();
     }
+
+    public function create(array $attributes = [])
+    {
+        $model = $this->getModel();
+
+        return $this->query->create($attributes, $model);
+    }
 }
