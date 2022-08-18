@@ -2,14 +2,17 @@
 
 namespace nikserg\LaravelApiModel;
 
+use App\Models\Platform;
 use GuzzleHttp\Exception\ClientException;
-use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
+use nikserg\LaravelApiModel\Model\CreateModels;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
+use nikserg\LaravelApiModel\Model\OneModel;
 use nikserg\LaravelApiModel\Model\Meta;
 
 /**
@@ -33,12 +36,9 @@ class ApiModelBaseQueryBuilder extends Builder
         if (!isset($this->listOfModels)) {
             $response = $this->connection->getClient()->request('GET',
                 $this->from);
+
             $body = $response->getBody()->getContents();
-            try {
-                $decoded = Utils::jsonDecode($body, true);
-            } catch (InvalidArgumentException) {
-                throw new InvalidArgumentException('Not JSON answer: ' . $body);
-            }
+            $decoded = Utils::jsonDecode($body, true);
 
             $this->listOfModels = new ListOfModels(
                 links: new Links(
@@ -143,11 +143,11 @@ class ApiModelBaseQueryBuilder extends Builder
         $this->wheres = [
             [$column, $operator, $value, $boolean],
         ];
-
+        dump('where QUery)');
         return $this;
     }
 
-    public function create(array $attributes = [])
+    public function create(array $attributes = [], $model)
     {
         $response = $this->connection->getClient()->request('POST', $this->from, ['form_params' => $attributes]);
 
@@ -157,5 +157,21 @@ class ApiModelBaseQueryBuilder extends Builder
         $model->fill($decoded['data']);
 
         return $model;
+    }
+
+    public function update(array $attributes)
+    {
+        dump('update Query');
+        dd($this);
+        // dd();
+        // dd($attributes);
+        // $response = $this->connection->getClient()->request('PUT', $this->from . '/' . $attributes['id'], ['form_params' => $attributes]);
+
+        // $body = $response->getBody()->getContents();
+        // $decoded = Utils::jsonDecode($body, true);
+        // dd($decoded);
+        // $model->fill($decoded['data']);
+
+        // return $model;
     }
 }

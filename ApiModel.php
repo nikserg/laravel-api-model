@@ -19,6 +19,8 @@ class ApiModel extends Model
 
     public function newEloquentBuilder($query)
     {
+        // dump(__FILE__.__LINE__);
+        dump($query);
         return new ApiModelEloquentBuilder($query);
     }
 
