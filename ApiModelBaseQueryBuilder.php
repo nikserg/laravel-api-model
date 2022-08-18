@@ -143,7 +143,6 @@ class ApiModelBaseQueryBuilder extends Builder
         $this->wheres = [
             [$column, $operator, $value, $boolean],
         ];
-        dump('where QUery)');
         return $this;
     }
 
@@ -161,10 +160,8 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function update(array $attributes)
     {
-        dump('update Query');
-        dd($this);
-        // dd();
-        // dd($attributes);
+        die(__FILE__.__LINE__);
+
         // $response = $this->connection->getClient()->request('PUT', $this->from . '/' . $attributes['id'], ['form_params' => $attributes]);
 
         // $body = $response->getBody()->getContents();

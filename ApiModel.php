@@ -3,6 +3,7 @@
 namespace nikserg\LaravelApiModel;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 
 /**
  * Extend this model to use Eloquent with API-requests
@@ -19,9 +20,10 @@ class ApiModel extends Model
 
     public function newEloquentBuilder($query)
     {
-        // dump(__FILE__.__LINE__);
-        dump($query);
         return new ApiModelEloquentBuilder($query);
+    }
+    public function newBaseQueryBuilder(): Builder {
+        return new ApiModelBaseQueryBuilder($this->getConnection());
     }
 
     public function qualifyColumn($column)
