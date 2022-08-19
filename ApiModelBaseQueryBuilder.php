@@ -168,29 +168,4 @@ class ApiModelBaseQueryBuilder extends Builder
             ];
         }
     }
-
-    public function update(array $values)
-    {
-        try {
-
-            $response = $this->connection->getClient()->request('PUT', $this->from . '/' . $values['id'], [
-                'form_params' => $values
-            ]);
-
-            $body = $response->getBody()->getContents();
-            $decoded = Utils::jsonDecode($body, true);
-
-            return [
-                'code' => $response->getStatusCode(),
-                'data' => $decoded['data'],
-            ];
-
-        } catch (\Exception $e) {
-
-            return [
-                'code' => $e->getCode(),
-                'data' => $e->getMessage()
-            ];
-        }
-    }
 }

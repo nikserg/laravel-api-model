@@ -39,23 +39,4 @@ class ApiModelEloquentBuilder extends Builder
 
         return $model->fill($response['data']);
     }
-
-    public function update($values = [])
-    {
-        $model = $this->getModel();
-
-        $response = $this->query->update($values);
-
-        if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
-
-            throw new InvalidArgumentException($response['data']);
-        }
-
-        return $model->fill($response['data']);
-    }
-
-    public function getKey()
-    {
-
-    }
 }

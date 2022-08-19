@@ -38,6 +38,27 @@ class ApiModel extends Model
 
     public function findOrFail($id, $columns = ['*'])
     {
-        return $this->select($columns)->from($this->getTable());
+        return $this->getModel()->fill([$id]);
+    }
+
+    public function update(array $attributes = [], array $options = [])
+    {
+        $connection = $this->getConnection();
+
+        try {
+
+            $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getAttributes()[0], [
+                'form_params' => $attributes
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
+
+            return $this->fill($decoded['data']);
+
+        } catch (\Exception $e) {
+
+            throw new InvalidArgumentException($response['data']);
+        }
     }
 }
