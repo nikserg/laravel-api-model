@@ -2,6 +2,7 @@
 
 namespace nikserg\LaravelApiModel;
 
+use GuzzleHttp\Utils;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 
