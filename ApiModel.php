@@ -62,4 +62,18 @@ class ApiModel extends Model
             throw new InvalidArgumentException($response['data']);
         }
     }
+
+    public function delete()
+    {
+        try {
+
+            $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getAttributes()[0]);
+
+            return true;
+
+        } catch (\Exception $e) {
+
+            throw new NotFoundHttpException($e->getMessage());
+        }
+    }
 }
