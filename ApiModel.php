@@ -30,4 +30,10 @@ class ApiModel extends Model
     {
         return $column; //Otherwise here would be <table name>.id
     }
+
+    public function getDateFormat()
+    {
+        //TODO
+    }
+
 }

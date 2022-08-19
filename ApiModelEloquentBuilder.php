@@ -1,7 +1,6 @@
 <?php
 
 namespace nikserg\LaravelApiModel;
-
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
@@ -26,26 +25,17 @@ class ApiModelEloquentBuilder extends Builder
         throw new NotImplemented();
     }
 
-    public function where($column, $operator = null, $value = null, $boolean = 'and')
+    public function create(array $attributes = [])
     {
-        $this->wheres = [
-            [$column, $operator, $value, $boolean],
-        ];
+        $model = $this->getModel();
 
-        return $this;
+        $response = $this->query->create($attributes);
+
+        if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
+
+            throw new NotImplemented($response['data']); // TODO
+        }
+
+        return $model->fill($response['data']);
     }
-
-//    public function create(array $attributes = [])
-//    {
-//        $model = $this->getModel();
-//
-//        return $this->query->create($attributes, $model);
-//    }
-//
-//    public function update(array $attributes = [])
-//    {
-//        $model = $this->getModel();
-//
-//        return $this->query->update($attributes, $model);
-//    }
 }
