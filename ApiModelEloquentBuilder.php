@@ -29,6 +29,13 @@ class ApiModelEloquentBuilder extends Builder
     {
         $model = $this->getModel();
 
-        return $this->query->create($attributes, $model);
+        $response = $this->query->create($attributes);
+
+        if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
+
+            throw new NotImplemented($response['data']); // TODO
+        }
+
+        return $model->fill($response['data']);
     }
 }
