@@ -36,4 +36,8 @@ class ApiModel extends Model
         //TODO
     }
 
+    public function findOrFail($id, $columns = ['*'])
+    {
+        return $this->select($columns)->from($this->getTable());
+    }
 }

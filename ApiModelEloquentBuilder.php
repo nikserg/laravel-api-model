@@ -3,6 +3,7 @@
 namespace nikserg\LaravelApiModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 
 /**
@@ -33,9 +34,28 @@ class ApiModelEloquentBuilder extends Builder
 
         if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
 
-            throw new NotImplemented($response['data']); // TODO
+            throw new InvalidArgumentException($response['data']);
         }
 
         return $model->fill($response['data']);
+    }
+
+    public function update($values = [])
+    {
+        $model = $this->getModel();
+
+        $response = $this->query->update($values);
+
+        if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
+
+            throw new InvalidArgumentException($response['data']);
+        }
+
+        return $model->fill($response['data']);
+    }
+
+    public function getKey()
+    {
+
     }
 }

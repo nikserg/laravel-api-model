@@ -169,17 +169,28 @@ class ApiModelBaseQueryBuilder extends Builder
         }
     }
 
-    public function update(array $attributes)
+    public function update(array $values)
     {
-        die(__FILE__.__LINE__);
+        try {
 
-        // $response = $this->connection->getClient()->request('PUT', $this->from . '/' . $attributes['id'], ['form_params' => $attributes]);
+            $response = $this->connection->getClient()->request('PUT', $this->from . '/' . $values['id'], [
+                'form_params' => $values
+            ]);
 
-        // $body = $response->getBody()->getContents();
-        // $decoded = Utils::jsonDecode($body, true);
-        // dd($decoded);
-        // $model->fill($decoded['data']);
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
 
-        // return $model;
+            return [
+                'code' => $response->getStatusCode(),
+                'data' => $decoded['data'],
+            ];
+
+        } catch (\Exception $e) {
+
+            return [
+                'code' => $e->getCode(),
+                'data' => $e->getMessage()
+            ];
+        }
     }
 }
