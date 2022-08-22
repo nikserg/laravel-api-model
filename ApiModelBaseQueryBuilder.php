@@ -139,10 +139,11 @@ class ApiModelBaseQueryBuilder extends Builder
             }
         }
 
-        $page = $this->offset / $this->limit;
         $models = $this->list()->models;
 
-        if (!empty($this->orders) || array_key_exists('query', $where)) {
+        if (!empty($this->orders) || !empty($search)) {
+
+            $page = $this->offset / $this->limit;
 
             $models = $this->getOrderBy((object) [
                 'column'    => $this->orders[0]['column'],
