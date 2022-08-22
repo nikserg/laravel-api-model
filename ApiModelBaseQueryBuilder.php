@@ -146,7 +146,7 @@ class ApiModelBaseQueryBuilder extends Builder
         return $this;
     }
 
-    public function create(array $attributes = [], $model)
+    public function create(array $attributes = [])
     {
         try {
 
