@@ -111,20 +111,26 @@ class ApiModelBaseQueryBuilder extends Builder
         $this->connection = $connection;
     }
 
-
     public function get($columns = ['*'])
     {
+        $search = [];
+
         if (!empty($this->wheres)) {
+
             foreach ($this->wheres as $where) {
-                if ($where[0] === $this->defaultKeyName() && $where[1] === '=') {
+
+                if (array_key_exists('query', $where)) {
+
+                    $search = $where['query']->wheres;
+
+                } else if ($where['column'] === $this->defaultKeyName() && $where['operator'] === '=') {
                     //get by id
-                    $record = $this->getOne($where[2]);
+                    $record = $this->getOne($where['value']);
 
                     //if no record, return empty array
                     if (!$record) {
                         return collect([]);
                     }
-
                     //if there is record, return single-element array
                     return collect([$record]);
                 } else {
@@ -135,11 +141,12 @@ class ApiModelBaseQueryBuilder extends Builder
 
         $models = $this->list()->models;
 
-        if (!empty($this->orders)) {
+        if (!empty($this->orders) || array_key_exists('query', $where)) {
 
             $models = $this->getOrderBy((object) [
                 'column'    => $this->orders[0]['column'],
-                'direction' => $this->orders[0]['direction']
+                'direction' => $this->orders[0]['direction'],
+                'search'    => count($search) ? json_encode($search) : []
             ])->models;
         }
 
@@ -150,7 +157,8 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
             'column'    => $order->column,
-            'direction' => $order->direction
+            'direction' => $order->direction,
+            'search'    => $order->search,
         ]]);
 
         $body = $response->getBody()->getContents();
@@ -177,25 +185,9 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
-        if (is_array($column)) {
-            return $this->addArrayOfWheres($column, $boolean);
-        }
-
-        if ($column != $this->defaultKeyName()) {
-            throw new NotImplemented('Only find by `' . $this->defaultKeyName() . '` is available so far. You\'ve tried to find by ' . $column);
-        }
-
-        if (strtolower($boolean) != 'and') {
-            throw new NotImplemented('OR where clauses are not available so far');
-        }
-
-        if ($operator != '=') {
-            throw new NotImplemented('Only `=` operator is available so far');
-        }
-
-        $this->wheres = [
-            [$column, $operator, $value, $boolean],
-        ];
+        $this->wheres[] = compact(
+            'column', 'operator', 'value', 'boolean'
+        );
 
         return $this;
     }

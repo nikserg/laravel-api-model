@@ -39,4 +39,9 @@ class ApiModelEloquentBuilder extends Builder
 
         return $model->fill($response['data']);
     }
+
+    public function orWhere($column, $operator = null, $value = null)
+    {
+        return $this->query->where($column, $operator, $value, 'or');
+    }
 }
