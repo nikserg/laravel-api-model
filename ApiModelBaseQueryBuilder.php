@@ -2,18 +2,20 @@
 
 namespace nikserg\LaravelApiModel;
 
-use App\Models\Platform;
+use Carbon\Carbon;
+use Exception;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\Expression;
+use Illuminate\Database\Query\Processors\Processor;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
-use nikserg\LaravelApiModel\Model\CreateModels;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
-use nikserg\LaravelApiModel\Model\OneModel;
 use nikserg\LaravelApiModel\Model\Meta;
+use Illuminate\Database\Query\Grammars\Grammar;
 
 /**
  * @property \nikserg\LaravelApiModel\Connection $connection
@@ -34,34 +36,47 @@ class ApiModelBaseQueryBuilder extends Builder
     public function list(): ListOfModels
     {
         if (!isset($this->listOfModels)) {
-            $response = $this->connection->getClient()->request('GET',
-                $this->from);
+
+            $response = $this->connection->getClient()->request('GET', $this->from);
 
             $body = $response->getBody()->getContents();
-            $decoded = Utils::jsonDecode($body, true);
 
-            $this->listOfModels = new ListOfModels(
-                links: new Links(
-                    first: $decoded['links']['first'],
-                    last: $decoded['links']['last'],
-                    next: $decoded['links']['next'],
-                    prev: $decoded['links']['prev']
-                ),
-                meta: new Meta(
-                    current_page: $decoded['meta']['current_page'],
-                    from: $decoded['meta']['from'],
-                    last_page: $decoded['meta']['last_page'],
-                    links: $decoded['meta']['links'],
-                    path: $decoded['meta']['path'],
-                    per_page: $decoded['meta']['per_page'],
-                    to: $decoded['meta']['to'],
-                    total: $decoded['meta']['total']
-                ),
-                models: $decoded['data'],
-            );
+            try {
+
+                $decoded = Utils::jsonDecode($body, true);
+
+            } catch (InvalidArgumentException) {
+
+                throw new InvalidArgumentException('Not JSON answer: ' . $body);
+            }
+
+            $models = $this->getListOfModels($decoded);
         }
 
-        return $this->listOfModels;
+        return $models ?? $this->listOfModels;
+    }
+
+    public function getListOfModels(array $response)
+    {
+        return $this->listOfModels = new ListOfModels(
+            links: new Links(
+                first: $response['links']['first'],
+                last: $response['links']['last'],
+                next: $response['links']['next'],
+                prev: $response['links']['prev']
+            ),
+            meta: new Meta(
+                current_page: $response['meta']['current_page'],
+                from: $response['meta']['from'],
+                last_page: $response['meta']['last_page'],
+                links: $response['meta']['links'],
+                path: $response['meta']['path'],
+                per_page: $response['meta']['per_page'],
+                to: $response['meta']['to'],
+                total: $response['meta']['total']
+            ),
+            models: $response['data'],
+        );
     }
 
     /**
@@ -119,8 +134,39 @@ class ApiModelBaseQueryBuilder extends Builder
         }
 
         $models = $this->list()->models;
-        //dd(collect($models));
+
+        if (!empty($this->orders)) {
+
+            $models = $this->getOrderBy((object) [
+                'column'    => $this->orders[0]['column'],
+                'direction' => $this->orders[0]['direction']
+            ])->models;
+        }
+
         return collect($models);
+    }
+
+    public function getOrderBy(object $order)
+    {
+        $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
+            'column'    => $order->column,
+            'direction' => $order->direction
+        ]]);
+
+        $body = $response->getBody()->getContents();
+
+        try {
+
+            $decoded = Utils::jsonDecode($body, true);
+
+        } catch (InvalidArgumentException) {
+
+            throw new InvalidArgumentException('Not JSON answer: ' . $body);
+        }
+
+        $models = $this->getListOfModels($decoded);
+
+        return $models ?? $this->listOfModels;
     }
 
     public function getCountForPagination($columns = ['*'])
@@ -131,18 +177,26 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
+        if (is_array($column)) {
+            return $this->addArrayOfWheres($column, $boolean);
+        }
+
         if ($column != $this->defaultKeyName()) {
             throw new NotImplemented('Only find by `' . $this->defaultKeyName() . '` is available so far. You\'ve tried to find by ' . $column);
         }
+
         if (strtolower($boolean) != 'and') {
             throw new NotImplemented('OR where clauses are not available so far');
         }
+
         if ($operator != '=') {
             throw new NotImplemented('Only `=` operator is available so far');
         }
+
         $this->wheres = [
             [$column, $operator, $value, $boolean],
         ];
+
         return $this;
     }
 
@@ -150,7 +204,9 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         try {
 
-            $response = $this->connection->getClient()->request('POST', $this->from, ['form_params' => $attributes]);
+            $response = $this->connection->getClient()->request('POST', $this->from, [
+                'form_params' => $attributes
+            ]);
 
             $body = $response->getBody()->getContents();
             $decoded = Utils::jsonDecode($body, true);
