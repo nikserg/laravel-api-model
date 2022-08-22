@@ -139,6 +139,7 @@ class ApiModelBaseQueryBuilder extends Builder
             }
         }
 
+        $page = $this->offset / $this->limit;
         $models = $this->list()->models;
 
         if (!empty($this->orders) || array_key_exists('query', $where)) {
@@ -146,7 +147,9 @@ class ApiModelBaseQueryBuilder extends Builder
             $models = $this->getOrderBy((object) [
                 'column'    => $this->orders[0]['column'],
                 'direction' => $this->orders[0]['direction'],
-                'search'    => count($search) ? json_encode($search) : []
+                'search'    => count($search) ? json_encode($search) : [],
+                'per_page'  => $this->limit,
+                'page'      => $page,
             ])->models;
         }
 
@@ -159,6 +162,8 @@ class ApiModelBaseQueryBuilder extends Builder
             'column'    => $order->column,
             'direction' => $order->direction,
             'search'    => $order->search,
+            'per_page'  => $order->per_page,
+            'page'      => $order->page+1
         ]]);
 
         $body = $response->getBody()->getContents();
@@ -181,7 +186,6 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         return $this->list()->meta->total;
     }
-
 
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
