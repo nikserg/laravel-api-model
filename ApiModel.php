@@ -40,6 +40,8 @@ class ApiModel extends Model
     }
 
     /**
+     * Форматирование даты
+     *
      * Переопределил для работы с датой, необзодимо в builder передать
      * Grammar и Processor для автоматического форматирования
      */
@@ -57,20 +59,16 @@ class ApiModel extends Model
     }
 
     /**
+     * Обновление записи
+     *
      * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
-     *
-     * Валидация стоит на всякий случай
      */
     public function update(array $attributes = [], array $options = [])
     {
         $connection = $this->getConnection();
 
-        if (empty($this->getAttributes()))
-            throw new NotImplemented('Not find primary key model.');
-
         try {
-
             $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getAttributes()[0], [
                 'form_params' => $attributes
             ]);
@@ -87,18 +85,14 @@ class ApiModel extends Model
     }
 
     /**
+     * Удаление записи
+     *
      * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
-     *
-     * Валидация стоит на всякий случай
      */
     public function delete()
     {
-        if (empty($this->getAttributes()))
-            throw new NotImplemented('Not find primary key model.');
-
         try {
-
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getAttributes()[0]);
 
             return true;

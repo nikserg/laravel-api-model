@@ -157,6 +157,12 @@ class ApiModelBaseQueryBuilder extends Builder
         return collect($models);
     }
 
+    /**
+     * Запрос с сортировкой и пагинацией
+     *
+     * В параметрах приходит массив с необходимой сортировкой
+     * значением поиска и пагинация
+     */
     public function getOrderBy(array $order)
     {
         $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
