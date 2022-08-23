@@ -56,7 +56,7 @@ class ApiModelBaseQueryBuilder extends Builder
         return $models ?? $this->listOfModels;
     }
 
-    public function getListOfModels(array $response)
+    public function getListOfModels(array $response): ListOfModels
     {
         return $this->listOfModels = new ListOfModels(
             links: new Links(
@@ -145,7 +145,7 @@ class ApiModelBaseQueryBuilder extends Builder
 
             $page = $this->offset / $this->limit;
 
-            $models = $this->getOrderBy((object) [
+            $models = $this->getOrderBy([
                 'column'    => $this->orders[0]['column'],
                 'direction' => $this->orders[0]['direction'],
                 'search'    => count($search) ? json_encode($search) : [],
@@ -157,14 +157,14 @@ class ApiModelBaseQueryBuilder extends Builder
         return collect($models);
     }
 
-    public function getOrderBy(object $order)
+    public function getOrderBy(array $order)
     {
         $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
-            'column'    => $order->column,
-            'direction' => $order->direction,
-            'search'    => $order->search,
-            'per_page'  => $order->per_page,
-            'page'      => $order->page+1
+            'column'    => $order['column'],
+            'direction' => $order['direction'],
+            'search'    => $order['search'],
+            'per_page'  => $order['per_page'],
+            'page'      => $order['page']+1
         ]]);
 
         $body = $response->getBody()->getContents();
@@ -208,17 +208,11 @@ class ApiModelBaseQueryBuilder extends Builder
             $body = $response->getBody()->getContents();
             $decoded = Utils::jsonDecode($body, true);
 
-            return [
-                'code' => $response->getStatusCode(),
-                'data' => $decoded['data'],
-            ];
+            return $decoded['data'];
 
-        } catch (\Exception $e) {
+        } catch (InvalidArgumentException $e) {
 
-            return [
-                'code' => $e->getCode(),
-                'data' => $e->getMessage()
-            ];
+            throw new InvalidArgumentException($e->getMessage());
         }
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\MySqlConnection;
 use InvalidArgumentException;
+use nikserg\LaravelApiModel\Exception\NotImplemented;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -38,19 +39,35 @@ class ApiModel extends Model
         return $column; //Otherwise here would be <table name>.id
     }
 
-    public function getDateFormat()
+    /**
+     * Переопределил для работы с датой, необзодимо в builder передать
+     * Grammar и Processor для автоматического форматирования
+     */
+    public function getDateFormat() //TODO
     {
 
     }
 
+    /**
+     * Срабатывает перед методами update & delete
+     */
     public function findOrFail($id, $columns = ['*'])
     {
         return $this->getModel()->fill([$id]);
     }
 
+    /**
+     * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
+     * поэтому $this->getAttributes[0] - не может быть без id
+     *
+     * Валидация стоит на всякий случай
+     */
     public function update(array $attributes = [], array $options = [])
     {
         $connection = $this->getConnection();
+
+        if (empty($this->getAttributes()))
+            throw new NotImplemented('Not find primary key model.');
 
         try {
 
@@ -63,21 +80,30 @@ class ApiModel extends Model
 
             return $this->fill($decoded['data']);
 
-        } catch (\Exception $e) {
+        } catch (InvalidArgumentException $e) {
 
-            throw new InvalidArgumentException($response['data']);
+            throw new InvalidArgumentException($e->getMessage());
         }
     }
 
+    /**
+     * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
+     * поэтому $this->getAttributes[0] - не может быть без id
+     *
+     * Валидация стоит на всякий случай
+     */
     public function delete()
     {
+        if (empty($this->getAttributes()))
+            throw new NotImplemented('Not find primary key model.');
+
         try {
 
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getAttributes()[0]);
 
             return true;
 
-        } catch (\Exception $e) {
+        } catch (NotFoundHttpException $e) {
 
             throw new NotFoundHttpException($e->getMessage());
         }

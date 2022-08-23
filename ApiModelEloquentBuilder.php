@@ -32,12 +32,7 @@ class ApiModelEloquentBuilder extends Builder
 
         $response = $this->query->create($attributes);
 
-        if ((int) $response['code'] < 200 || (int) $response['code'] > 204) {
-
-            throw new InvalidArgumentException($response['data']);
-        }
-
-        return $model->fill($response['data']);
+        return $model->fill($response);
     }
 
     public function orWhere($column, $operator = null, $value = null)
