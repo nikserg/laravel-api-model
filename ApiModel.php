@@ -70,7 +70,7 @@ class ApiModel extends Model
 
         try {
             $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getIdBeforeSave(), [
-                'form_params' => $attributes
+                'json' => $attributes
             ]);
 
             $body = $response->getBody()->getContents();
@@ -86,7 +86,7 @@ class ApiModel extends Model
 
     /**
      * Получение primary key
-     * 
+     *
      * Перед вызовом этой функции в findOrFail в модель определили primary key
      */
     public function getIdBeforeSave()
