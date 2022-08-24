@@ -3,6 +3,7 @@
 namespace nikserg\LaravelApiModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use InvalidArgumentException;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 
 /**
@@ -29,6 +30,13 @@ class ApiModelEloquentBuilder extends Builder
     {
         $model = $this->getModel();
 
-        return $this->query->create($attributes, $model);
+        $response = $this->query->create($attributes);
+
+        return $model->fill($response);
+    }
+
+    public function orWhere($column, $operator = null, $value = null)
+    {
+        return $this->query->where($column, $operator, $value, 'or');
     }
 }
