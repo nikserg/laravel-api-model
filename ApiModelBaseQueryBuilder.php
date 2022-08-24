@@ -38,15 +38,11 @@ class ApiModelBaseQueryBuilder extends Builder
         if (!isset($this->listOfModels)) {
 
             $response = $this->connection->getClient()->request('GET', $this->from);
-
             $body = $response->getBody()->getContents();
 
             try {
-
                 $decoded = Utils::jsonDecode($body, true);
-
             } catch (InvalidArgumentException) {
-
                 throw new InvalidArgumentException('Not JSON answer: ' . $body);
             }
 
@@ -176,11 +172,8 @@ class ApiModelBaseQueryBuilder extends Builder
         $body = $response->getBody()->getContents();
 
         try {
-
             $decoded = Utils::jsonDecode($body, true);
-
         } catch (InvalidArgumentException) {
-
             throw new InvalidArgumentException('Not JSON answer: ' . $body);
         }
 

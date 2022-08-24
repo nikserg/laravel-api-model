@@ -69,7 +69,7 @@ class ApiModel extends Model
         $connection = $this->getConnection();
 
         try {
-            $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getAttributes()[0], [
+            $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getIdBeforeSave(), [
                 'form_params' => $attributes
             ]);
 
@@ -85,6 +85,16 @@ class ApiModel extends Model
     }
 
     /**
+     * Получение primary key
+     * 
+     * Перед вызовом этой функции в findOrFail в модель определили primary key
+     */
+    public function getIdBeforeSave()
+    {
+        return $this->getAttributes()[0];
+    }
+
+    /**
      * Удаление записи
      *
      * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
@@ -93,7 +103,7 @@ class ApiModel extends Model
     public function delete()
     {
         try {
-            $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getAttributes()[0]);
+            $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
 
             return true;
 
