@@ -198,20 +198,13 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        try {
+        $response = $this->connection->getClient()->request('POST', $this->from, [
+            'form_params' => $attributes
+        ]);
 
-            $response = $this->connection->getClient()->request('POST', $this->from, [
-                'form_params' => $attributes
-            ]);
+        $body = $response->getBody()->getContents();
+        $decoded = Utils::jsonDecode($body, true);
 
-            $body = $response->getBody()->getContents();
-            $decoded = Utils::jsonDecode($body, true);
-
-            return $decoded['data'];
-
-        } catch (InvalidArgumentException $e) {
-
-            throw new InvalidArgumentException($e->getMessage());
-        }
+        return $decoded['data'];
     }
 }
