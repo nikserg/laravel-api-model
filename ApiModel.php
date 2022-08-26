@@ -6,7 +6,10 @@ use GuzzleHttp\Utils;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\MySqlConnection;
 use InvalidArgumentException;
+use nikserg\LaravelApiModel\Exception\NotImplemented;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -45,6 +48,7 @@ class ApiModel extends Model
      */
     public function getDateFormat() //TODO
     {
+
     }
 
     /**
@@ -65,6 +69,7 @@ class ApiModel extends Model
      * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
      */
+
     public function update(array $attributes = [], array $options = []): ApiModel
     {
         $connection = $this->getConnection();
@@ -78,6 +83,7 @@ class ApiModel extends Model
             $decoded = Utils::jsonDecode($body, true);
 
             return $this->fill($decoded['data']);
+
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException($e->getMessage());
         }
@@ -109,6 +115,7 @@ class ApiModel extends Model
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
 
             return true;
+            
         } catch (NotFoundHttpException $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
@@ -130,6 +137,7 @@ class ApiModel extends Model
             $decoded = Utils::jsonDecode($body, true);
 
             return collect($decoded['data']);
+            
         } catch (NotFoundHttpException $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
