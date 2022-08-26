@@ -4,11 +4,9 @@ namespace nikserg\LaravelApiModel;
 
 use GuzzleHttp\Utils;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\MySqlConnection;
 use InvalidArgumentException;
-use nikserg\LaravelApiModel\Exception\NotImplemented;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -24,7 +22,7 @@ class ApiModel extends Model
     protected static $unguarded = true;
     public $incrementing        = false;
 
-    public function newEloquentBuilder($query)
+    public function newEloquentBuilder($query): ApiModelEloquentBuilder
     {
         return new ApiModelEloquentBuilder($query);
     }
@@ -34,7 +32,7 @@ class ApiModel extends Model
         return new ApiModelBaseQueryBuilder($this->getConnection());
     }
 
-    public function qualifyColumn($column)
+    public function qualifyColumn($column): string
     {
         return $column; //Otherwise here would be <table name>.id
     }
@@ -47,13 +45,16 @@ class ApiModel extends Model
      */
     public function getDateFormat() //TODO
     {
-
     }
 
     /**
      * Срабатывает перед методами update & delete
+     *
+     * @param $id
+     * @param $columns
+     * @return ApiModel
      */
-    public function findOrFail($id, $columns = ['*'])
+    public function findOrFail($id, $columns = ['*']): ApiModel
     {
         return $this->getModel()->fill([$id]);
     }
@@ -64,7 +65,7 @@ class ApiModel extends Model
      * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
      */
-    public function update(array $attributes = [], array $options = [])
+    public function update(array $attributes = [], array $options = []): ApiModel
     {
         $connection = $this->getConnection();
 
@@ -77,9 +78,7 @@ class ApiModel extends Model
             $decoded = Utils::jsonDecode($body, true);
 
             return $this->fill($decoded['data']);
-
         } catch (InvalidArgumentException $e) {
-
             throw new InvalidArgumentException($e->getMessage());
         }
     }
@@ -88,8 +87,10 @@ class ApiModel extends Model
      * Получение primary key
      *
      * Перед вызовом этой функции в findOrFail в модель определили primary key
+     *
+     * @return mixed
      */
-    public function getIdBeforeSave()
+    public function getIdBeforeSave(): mixed
     {
         return $this->getAttributes()[0];
     }
@@ -99,16 +100,37 @@ class ApiModel extends Model
      *
      * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
+     *
+     * @return bool
      */
-    public function delete()
+    public function delete(): bool
     {
         try {
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
 
             return true;
-
         } catch (NotFoundHttpException $e) {
+            throw new NotFoundHttpException($e->getMessage());
+        }
+    }
 
+    /**
+     * Получить объект с иерархией
+     *
+     * @return Collection
+     */
+    public function hierarchy(): Collection
+    {
+        $connection = $this->getConnection();
+
+        try {
+            $response = $connection->getClient()->request('GET', $this->getTable() . '/' . $this->getIdBeforeSave() . '/hierarchy');
+
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
+
+            return collect($decoded['data']);
+        } catch (NotFoundHttpException $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
     }
