@@ -95,6 +95,9 @@ class ApiModelBaseQueryBuilder extends Builder
         }
         $body = $response->getBody()->getContents();
         $decoded = Utils::jsonDecode($body, true);
+        
+        if (!array_key_exists('data', $decoded))
+            throw new InvalidArgumentException('Missing a key data');
 
         return $decoded['data'];
     }
