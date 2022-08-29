@@ -2,20 +2,16 @@
 
 namespace nikserg\LaravelApiModel;
 
-use Carbon\Carbon;
 use Exception;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Database\Query\Expression;
-use Illuminate\Database\Query\Processors\Processor;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
 use nikserg\LaravelApiModel\Model\Meta;
-use Illuminate\Database\Query\Grammars\Grammar;
 
 /**
  * @property \nikserg\LaravelApiModel\Connection $connection
@@ -38,7 +34,7 @@ class ApiModelBaseQueryBuilder extends Builder
         if (!isset($this->listOfModels)) {
 
             $response = $this->connection->getClient()->request('GET', $this->from);
-            $body = $response->getBody()->getContents();
+            $body     = $response->getBody()->getContents();
 
             try {
                 $decoded = Utils::jsonDecode($body, true);
@@ -55,29 +51,31 @@ class ApiModelBaseQueryBuilder extends Builder
     public function getListOfModels(array $response): ListOfModels
     {
         return $this->listOfModels = new ListOfModels(
-            links: new Links(
-                first: $response['links']['first'],
-                last: $response['links']['last'],
-                next: $response['links']['next'],
-                prev: $response['links']['prev']
+            links:new Links(
+                first:$response['links']['first'],
+                last:$response['links']['last'],
+                next:$response['links']['next'],
+                prev:$response['links']['prev']
             ),
-            meta: new Meta(
-                current_page: $response['meta']['current_page'],
-                from: $response['meta']['from'],
-                last_page: $response['meta']['last_page'],
-                links: $response['meta']['links'],
-                path: $response['meta']['path'],
-                per_page: $response['meta']['per_page'],
-                to: $response['meta']['to'],
-                total: $response['meta']['total']
+            meta:new Meta(
+                current_page:$response['meta']['current_page'],
+                from:$response['meta']['from'],
+                last_page:$response['meta']['last_page'],
+                links:$response['meta']['links'],
+                path:$response['meta']['path'],
+                per_page:$response['meta']['per_page'],
+                to:$response['meta']['to'],
+                total:$response['meta']['total']
             ),
-            models: $response['data'],
+            models:$response['data'],
         );
     }
 
     /**
      * Get single record from server
      *
+     * Получаем ответ с другого сервера,
+     * если не пришла дата то выдаем обычный респонс
      *
      * @param $id
      * @return array|null
@@ -93,11 +91,12 @@ class ApiModelBaseQueryBuilder extends Builder
                 return null;
             }
         }
-        $body = $response->getBody()->getContents();
+        $body    = $response->getBody()->getContents();
         $decoded = Utils::jsonDecode($body, true);
-        
-        if (!array_key_exists('data', $decoded))
-            throw new InvalidArgumentException('Missing a key data');
+
+        if (!array_key_exists('data', $decoded)) {
+            throw new InvalidArgumentException('Missing a key data ' . $body);
+        }
 
         return $decoded['data'];
     }
@@ -169,7 +168,7 @@ class ApiModelBaseQueryBuilder extends Builder
             'direction' => $order['direction'],
             'search'    => $order['search'],
             'per_page'  => $order['per_page'],
-            'page'      => $order['page']+1
+            'page'      => $order['page'] + 1,
         ]]);
 
         $body = $response->getBody()->getContents();
@@ -202,11 +201,15 @@ class ApiModelBaseQueryBuilder extends Builder
     public function create(array $attributes = [])
     {
         $response = $this->connection->getClient()->request('POST', $this->from, [
-            'form_params' => $attributes
+            'form_params' => $attributes,
         ]);
 
-        $body = $response->getBody()->getContents();
+        $body    = $response->getBody()->getContents();
         $decoded = Utils::jsonDecode($body, true);
+
+        if (!array_key_exists('data', $decoded)) {
+            throw new InvalidArgumentException('Missing a key data ' . $body);
+        }
 
         return $decoded['data'];
     }
