@@ -56,7 +56,7 @@ class ApiModel extends Model
     /**
      * Срабатывает перед методами update & delete
      */
-    public function findOrFail($id, $columns = ['*'])
+    public function findOrFail($id, $columns = ['*']): ApiModel
     {
         return $this->getModel()->fill([$id]);
     }
@@ -67,7 +67,7 @@ class ApiModel extends Model
      * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
      */
-    public function update(array $attributes = [], array $options = [])
+    public function update(array $attributes = [], array $options = []): ApiModel
     {
         try {
             $response = $this->getConnection()->getClient()->request('PUT', $this->getUpdateUrl(); . '/' . $this->getIdBeforeSave(), [
@@ -100,7 +100,7 @@ class ApiModel extends Model
      *
      * Перед вызовом этой функции в findOrFail в модель определили primary key
      */
-    public function getIdBeforeSave()
+    public function getIdBeforeSave(): mixed
     {
         return $this->getAttributes()[0];
     }
