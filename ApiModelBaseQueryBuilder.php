@@ -84,7 +84,7 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     private function getOne($id): ?array
     {
-        $url = $this->custom_url ?? $this->from;
+        $url = $this->customUrl ?? $this->getCreateOrViewUrl();
 
         try {
             $response = $this->connection->getClient()->request('GET',
@@ -106,13 +106,21 @@ class ApiModelBaseQueryBuilder extends Builder
     }
 
     /**
+     * Получение пользовательского url для модели
+     */
+    protected function getCreateOrViewUrl(): string
+    { 
+        return $this->from;
+    }
+
+    /**
      * @param \Illuminate\Database\ConnectionInterface $connection Connection to remote API
      */
-    public function __construct(ConnectionInterface $connection, ?string $custom_url = null)
+    public function __construct(ConnectionInterface $connection, ?string $customUrl = null)
     {
         $this->connection = $connection;
 
-        $this->custom_url = $custom_url;
+        $this->customUrl = $customUrl;
     }
 
     public function get($columns = ['*'])
@@ -167,7 +175,7 @@ class ApiModelBaseQueryBuilder extends Builder
      * В параметрах приходит массив с необходимой сортировкой
      * значением поиска и пагинация
      */
-    public function getOrderBy(array $order)
+    public function getOrderBy(array $order): ?ListOfModels
     {
         $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
             'column'    => $order['column'],
@@ -190,7 +198,7 @@ class ApiModelBaseQueryBuilder extends Builder
         return $models ?? $this->listOfModels;
     }
 
-    public function getCountForPagination($columns = ['*'])
+    public function getCountForPagination($columns = ['*']): int
     {
         return $this->list()->meta->total;
     }
@@ -206,7 +214,7 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        $url = $this->custom_url ?? $this->from;
+        $url = $this->customUrl ?? $this->getCreateOrViewUrl();
 
         $response = $this->connection->getClient()->request('POST', $url, [
             'form_params' => $attributes,

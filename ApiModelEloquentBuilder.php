@@ -11,7 +11,7 @@ use nikserg\LaravelApiModel\Exception\NotImplemented;
  */
 class ApiModelEloquentBuilder extends Builder
 {
-    public function count($columns = '*')
+    public function count($columns = '*'): int
     {
         return $this->query->list()->meta->total;
     }

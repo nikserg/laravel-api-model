@@ -24,7 +24,7 @@ class ApiModel extends Model
     protected static $unguarded = true;
     public $incrementing        = false;
 
-    public function newEloquentBuilder($query)
+    public function newEloquentBuilder($query): ApiModelEloquentBuilder
     {
         return new ApiModelEloquentBuilder($query);
     }
@@ -69,7 +69,7 @@ class ApiModel extends Model
      */
     public function update(array $attributes = [], array $options = [])
     {
-        $url = $this->custom_url ?? $this->getTable();
+        $url = $this->custom_url ?? $this->getUpdateUrl();
 
         try {
             $response = $this->getConnection()->getClient()->request('PUT', $url . '/' . $this->getIdBeforeSave(), [
@@ -90,6 +90,14 @@ class ApiModel extends Model
     }
 
     /**
+     * Получение пользовательского url для модели
+     */
+    protected function getUpdateUrl(): string
+    { 
+        return $this->getTable(); 
+    }
+
+    /**
      * Получение primary key
      *
      * Перед вызовом этой функции в findOrFail в модель определили primary key
@@ -105,7 +113,7 @@ class ApiModel extends Model
      * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
      */
-    public function delete()
+    public function delete(): ?bool
     {
         try {
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
