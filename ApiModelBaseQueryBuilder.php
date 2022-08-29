@@ -108,7 +108,7 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     protected function getCreateOrViewUrl(): string
     { 
-        return $this->customUrl ?? $this->from;
+        return $this->from;
     }
 
     /**
