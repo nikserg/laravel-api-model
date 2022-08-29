@@ -5,7 +5,10 @@ namespace nikserg\LaravelApiModel;
 use GuzzleHttp\Utils;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\MySqlConnection;
 use InvalidArgumentException;
+use nikserg\LaravelApiModel\Exception\NotImplemented;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -19,19 +22,22 @@ class ApiModel extends Model
      * @var bool
      */
     protected static $unguarded = true;
-    public $incrementing = false;
+    public $incrementing        = false;
 
-    public function newEloquentBuilder($query): ApiModelEloquentBuilder
+    public function newEloquentBuilder($query)
     {
         return new ApiModelEloquentBuilder($query);
     }
 
     public function newBaseQueryBuilder(): Builder
     {
-        return new ApiModelBaseQueryBuilder($this->getConnection());
+        return new ApiModelBaseQueryBuilder(
+            $this->getConnection(),
+            $this->custom_url
+        );
     }
 
-    public function qualifyColumn($column): string
+    public function qualifyColumn($column)
     {
         return $column; //Otherwise here would be <table name>.id
     }
@@ -44,16 +50,13 @@ class ApiModel extends Model
      */
     public function getDateFormat() //TODO
     {
+
     }
 
     /**
      * Срабатывает перед методами update & delete
-     *
-     * @param $id
-     * @param $columns
-     * @return ApiModel
      */
-    public function findOrFail($id, $columns = ['*']): ApiModel
+    public function findOrFail($id, $columns = ['*'])
     {
         return $this->getModel()->fill([$id]);
     }
@@ -63,37 +66,35 @@ class ApiModel extends Model
      *
      * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
-     *
-     * @param array $attributes
-     * @param array $options
-     * @return ApiModel
      */
-    public function update(array $attributes = [], array $options = []): ApiModel
+    public function update(array $attributes = [], array $options = [])
     {
-        $connection = $this->getConnection();
+        $url = $this->custom_url ?? $this->getTable();
 
         try {
-            $response = $connection->getClient()->request('PUT', $this->getTable() . '/' . $this->getIdBeforeSave(), [
-                'json' => $attributes
+            $response = $this->getConnection()->getClient()->request('PUT', $url . '/' . $this->getIdBeforeSave(), [
+                'form_params' => $attributes
             ]);
-
-            $body = $response->getBody()->getContents();
-            $decoded = Utils::jsonDecode($body, true);
-
-            return $this->fill($decoded['data']);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException($e->getMessage());
         }
+
+        $body = $response->getBody()->getContents();
+        $decoded = Utils::jsonDecode($body, true);
+
+        if (!array_key_exists('data', $decoded)) {
+            throw new InvalidArgumentException('Missing a key data ' . $body);
+        }
+
+        return $this->fill($decoded['data']);
     }
 
     /**
      * Получение primary key
      *
      * Перед вызовом этой функции в findOrFail в модель определили primary key
-     *
-     * @return mixed
      */
-    public function getIdBeforeSave(): mixed
+    public function getIdBeforeSave()
     {
         return $this->getAttributes()[0];
     }
@@ -103,16 +104,16 @@ class ApiModel extends Model
      *
      * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
      * поэтому $this->getAttributes[0] - не может быть без id
-     *
-     * @return bool
      */
-    public function delete(): bool
+    public function delete()
     {
         try {
             $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
 
             return true;
+
         } catch (NotFoundHttpException $e) {
+
             throw new NotFoundHttpException($e->getMessage());
         }
     }

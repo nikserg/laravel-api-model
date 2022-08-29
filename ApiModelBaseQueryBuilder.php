@@ -8,6 +8,7 @@ use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Request;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
@@ -83,14 +84,17 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     private function getOne($id): ?array
     {
+        $url = $this->custom_url ?? $this->from;
+
         try {
             $response = $this->connection->getClient()->request('GET',
-                $this->from . '/' . $id);
+                $url . '/' . $id);
         } catch (ClientException $exception) {
             if ($exception->getCode() == 404) {
                 return null;
             }
         }
+
         $body    = $response->getBody()->getContents();
         $decoded = Utils::jsonDecode($body, true);
 
@@ -104,9 +108,11 @@ class ApiModelBaseQueryBuilder extends Builder
     /**
      * @param \Illuminate\Database\ConnectionInterface $connection Connection to remote API
      */
-    public function __construct(ConnectionInterface $connection)
+    public function __construct(ConnectionInterface $connection, ?string $custom_url = null)
     {
         $this->connection = $connection;
+
+        $this->custom_url = $custom_url;
     }
 
     public function get($columns = ['*'])
@@ -200,7 +206,9 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        $response = $this->connection->getClient()->request('POST', $this->from, [
+        $url = $this->custom_url ?? $this->from;
+
+        $response = $this->connection->getClient()->request('POST', $url, [
             'form_params' => $attributes,
         ]);
 
