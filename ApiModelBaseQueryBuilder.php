@@ -84,11 +84,9 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     private function getOne($id): ?array
     {
-        $url = $this->customUrl ?? $this->getCreateOrViewUrl();
-
         try {
             $response = $this->connection->getClient()->request('GET',
-                $url . '/' . $id);
+            $this->getCreateOrViewUrl() . '/' . $id);
         } catch (ClientException $exception) {
             if ($exception->getCode() == 404) {
                 return null;
@@ -110,7 +108,7 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     protected function getCreateOrViewUrl(): string
     { 
-        return $this->from;
+        return $this->customUrl ?? $this->from;
     }
 
     /**
@@ -214,9 +212,7 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        $url = $this->customUrl ?? $this->getCreateOrViewUrl();
-
-        $response = $this->connection->getClient()->request('POST', $url, [
+        $response = $this->connection->getClient()->request('POST', $this->getCreateOrViewUrl(), [
             'form_params' => $attributes,
         ]);
 

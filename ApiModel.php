@@ -33,11 +33,11 @@ class ApiModel extends Model
     {
         return new ApiModelBaseQueryBuilder(
             $this->getConnection(),
-            $this->custom_url
+            $this->customUrl
         );
     }
 
-    public function qualifyColumn($column)
+    public function qualifyColumn($column): string
     {
         return $column; //Otherwise here would be <table name>.id
     }
@@ -69,10 +69,8 @@ class ApiModel extends Model
      */
     public function update(array $attributes = [], array $options = [])
     {
-        $url = $this->custom_url ?? $this->getUpdateUrl();
-
         try {
-            $response = $this->getConnection()->getClient()->request('PUT', $url . '/' . $this->getIdBeforeSave(), [
+            $response = $this->getConnection()->getClient()->request('PUT', $this->getUpdateUrl(); . '/' . $this->getIdBeforeSave(), [
                 'form_params' => $attributes
             ]);
         } catch (InvalidArgumentException $e) {
@@ -94,7 +92,7 @@ class ApiModel extends Model
      */
     protected function getUpdateUrl(): string
     { 
-        return $this->getTable(); 
+        return $this->customUrl ?? $this->getTable(); 
     }
 
     /**
