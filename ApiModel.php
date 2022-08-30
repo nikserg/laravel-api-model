@@ -73,7 +73,7 @@ class ApiModel extends Model
             $response = $this->getConnection()->getClient()->request('PUT',
             $this->getCustomUrl() . '/' . $this->getIdBeforeSave(),
             [
-                'form_params' => $attributes
+                'json' => $attributes
             ]);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException($e->getMessage());
@@ -124,17 +124,5 @@ class ApiModel extends Model
 
             throw new NotFoundHttpException($e->getMessage());
         }
-    }
-
-    /**
-     * Если пришла строка json, то декодируем в массив
-     */
-    public function fromJson($value, $asObject = false)
-    {
-        if (is_string($value)) {
-            $value = json_decode($value, true);
-        }
-
-        return $value;
     }
 }
