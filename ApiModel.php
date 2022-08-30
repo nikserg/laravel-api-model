@@ -73,7 +73,7 @@ class ApiModel extends Model
             $response = $this->getConnection()->getClient()->request('PUT',
             $this->getCustomUrl() . '/' . $this->getIdBeforeSave(),
             [
-                'form_params' => $attributes
+                'json' => $attributes
             ]);
         } catch (InvalidArgumentException $e) {
             throw new InvalidArgumentException($e->getMessage());
