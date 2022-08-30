@@ -34,7 +34,7 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         if (!isset($this->listOfModels)) {
 
-            $response = $this->connection->getClient()->request('GET', $this->from);
+            $response = $this->connection->getClient()->request('GET', $this->customUrl);
             $body     = $response->getBody()->getContents();
 
             try {
@@ -86,7 +86,7 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         try {
             $response = $this->connection->getClient()->request('GET',
-            $this->getCreateOrViewUrl() . '/' . $id);
+            $this->customUrl . '/' . $id);
         } catch (ClientException $exception) {
             if ($exception->getCode() == 404) {
                 return null;
@@ -101,14 +101,6 @@ class ApiModelBaseQueryBuilder extends Builder
         }
 
         return $decoded['data'];
-    }
-
-    /**
-     * Получение пользовательского url для модели
-     */
-    protected function getCreateOrViewUrl(): string
-    { 
-        return $this->from;
     }
 
     /**
@@ -175,7 +167,7 @@ class ApiModelBaseQueryBuilder extends Builder
      */
     public function getOrderBy(array $order): ?ListOfModels
     {
-        $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
+        $response = $this->connection->getClient()->request('GET', $this->customUrl, ['query' => [
             'column'    => $order['column'],
             'direction' => $order['direction'],
             'search'    => $order['search'],
@@ -212,7 +204,7 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        $response = $this->connection->getClient()->request('POST', $this->getCreateOrViewUrl(), [
+        $response = $this->connection->getClient()->request('POST', $this->customUrl, [
             'form_params' => $attributes,
         ]);
 

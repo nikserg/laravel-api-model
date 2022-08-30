@@ -33,7 +33,7 @@ class ApiModel extends Model
     {
         return new ApiModelBaseQueryBuilder(
             $this->getConnection(),
-            $this->getUpdateUrl()
+            $this->getCustomUrl()
         );
     }
 
@@ -70,7 +70,9 @@ class ApiModel extends Model
     public function update(array $attributes = [], array $options = []): ApiModel
     {
         try {
-            $response = $this->getConnection()->getClient()->request('PUT', $this->getUpdateUrl() . '/' . $this->getIdBeforeSave(), [
+            $response = $this->getConnection()->getClient()->request('PUT',
+            $this->getCustomUrl() . '/' . $this->getIdBeforeSave(),
+            [
                 'form_params' => $attributes
             ]);
         } catch (InvalidArgumentException $e) {
@@ -90,9 +92,9 @@ class ApiModel extends Model
     /**
      * Получение пользовательского url для модели
      */
-    protected function getUpdateUrl(): string
-    { 
-        return $this->getTable(); 
+    protected function getCustomUrl(): string
+    {
+        return $this->getTable();
     }
 
     /**
