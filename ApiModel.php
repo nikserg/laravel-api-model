@@ -116,7 +116,7 @@ class ApiModel extends Model
     public function delete(): ?bool
     {
         try {
-            $this->getConnection()->getClient()->request('DELETE', $this->getTable() . '/' . $this->getIdBeforeSave());
+            $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getIdBeforeSave());
 
             return true;
 
