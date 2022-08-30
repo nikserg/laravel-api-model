@@ -8,6 +8,7 @@ use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Request;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
@@ -33,7 +34,7 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         if (!isset($this->listOfModels)) {
 
-            $response = $this->connection->getClient()->request('GET', $this->from);
+            $response = $this->connection->getClient()->request('GET', $this->customUrl);
             $body     = $response->getBody()->getContents();
 
             try {
@@ -85,12 +86,13 @@ class ApiModelBaseQueryBuilder extends Builder
     {
         try {
             $response = $this->connection->getClient()->request('GET',
-                $this->from . '/' . $id);
+            $this->customUrl . '/' . $id);
         } catch (ClientException $exception) {
             if ($exception->getCode() == 404) {
                 return null;
             }
         }
+
         $body    = $response->getBody()->getContents();
         $decoded = Utils::jsonDecode($body, true);
 
@@ -104,9 +106,11 @@ class ApiModelBaseQueryBuilder extends Builder
     /**
      * @param \Illuminate\Database\ConnectionInterface $connection Connection to remote API
      */
-    public function __construct(ConnectionInterface $connection)
+    public function __construct(ConnectionInterface $connection, ?string $customUrl = null)
     {
         $this->connection = $connection;
+
+        $this->customUrl = $customUrl;
     }
 
     public function get($columns = ['*'])
@@ -161,9 +165,9 @@ class ApiModelBaseQueryBuilder extends Builder
      * В параметрах приходит массив с необходимой сортировкой
      * значением поиска и пагинация
      */
-    public function getOrderBy(array $order)
+    public function getOrderBy(array $order): ?ListOfModels
     {
-        $response = $this->connection->getClient()->request('GET', $this->from, ['query' => [
+        $response = $this->connection->getClient()->request('GET', $this->customUrl, ['query' => [
             'column'    => $order['column'],
             'direction' => $order['direction'],
             'search'    => $order['search'],
@@ -184,7 +188,7 @@ class ApiModelBaseQueryBuilder extends Builder
         return $models ?? $this->listOfModels;
     }
 
-    public function getCountForPagination($columns = ['*'])
+    public function getCountForPagination($columns = ['*']): int
     {
         return $this->list()->meta->total;
     }
@@ -200,7 +204,7 @@ class ApiModelBaseQueryBuilder extends Builder
 
     public function create(array $attributes = [])
     {
-        $response = $this->connection->getClient()->request('POST', $this->from, [
+        $response = $this->connection->getClient()->request('POST', $this->customUrl, [
             'form_params' => $attributes,
         ]);
 
