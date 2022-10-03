@@ -2,13 +2,12 @@
 
 namespace nikserg\LaravelApiModel;
 
-use Exception;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\InvalidArgumentException;
 use GuzzleHttp\Utils;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\Request;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use nikserg\LaravelApiModel\Model\Links;
 use nikserg\LaravelApiModel\Model\ListOfModels;
@@ -19,13 +18,16 @@ use nikserg\LaravelApiModel\Model\Meta;
  */
 class ApiModelBaseQueryBuilder extends Builder
 {
-
+    /**
+     * List of on page, including metadata
+     *
+     * @var ListOfModels
+     */
     private ListOfModels $listOfModels;
 
     /**
      * Get list of models from remote server, including metadata.
      * Typical response from standard JSON Resource.
-     *
      *
      * @throws \GuzzleHttp\Exception\GuzzleException
      * @throws \Exception
@@ -33,11 +35,29 @@ class ApiModelBaseQueryBuilder extends Builder
     public function list(): ListOfModels
     {
         if (!isset($this->listOfModels)) {
+            $page = 0;
+            if ($this->limit ?? null) {
+                $page = $this->offset / $this->limit;
+            }
 
-            $response = $this->connection->getClient()->request('GET', $this->customUrl);
-            $body     = $response->getBody()->getContents();
+            $search = [];
+            if (!empty($this->wheres)) {
+                foreach ($this->wheres as $where) {
+                    if (array_key_exists('query', $where)) {
+                        $search = $where['query']->wheres;
+                    }
+                }
+            }
 
             try {
+                $response = $this->connection->getClient()->request('GET', $this->customUrl, ['query' => [
+                    'column'    => isset($this->orders[0]['column']) ? $this->orders[0]['column'] : null,
+                    'direction' => isset($this->orders[0]['direction']) ? $this->orders[0]['direction'] : null,
+                    'search'    => count($search) ? json_encode($search) : [],
+                    'per_page'  => $this->limit,
+                    'page'      => $page + 1,
+                ]]);
+                $body = $response->getBody()->getContents();
                 $decoded = Utils::jsonDecode($body, true);
             } catch (InvalidArgumentException) {
                 throw new InvalidArgumentException('Not JSON answer: ' . $body);
@@ -49,6 +69,12 @@ class ApiModelBaseQueryBuilder extends Builder
         return $models ?? $this->listOfModels;
     }
 
+    /**
+     * Build list of models from response data
+     *
+     * @param array $response
+     * @return ListOfModels
+     */
     public function getListOfModels(array $response): ListOfModels
     {
         return $this->listOfModels = new ListOfModels(
@@ -75,8 +101,8 @@ class ApiModelBaseQueryBuilder extends Builder
     /**
      * Get single record from server
      *
-     * Получаем ответ с другого сервера,
-     * если не пришла дата то выдаем обычный респонс
+     * Receive a response from another server,
+     * if date not set, then we issue default response
      *
      * @param $id
      * @return array|null
@@ -85,16 +111,39 @@ class ApiModelBaseQueryBuilder extends Builder
     private function getOne($id): ?array
     {
         try {
-            $response = $this->connection->getClient()->request('GET',
-            $this->customUrl . '/' . $id);
-        } catch (ClientException $exception) {
-            if ($exception->getCode() == 404) {
-                return null;
-            }
+            $response = $this->connection->getClient()->request('GET', $this->customUrl . '/' . $id);
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('Not JSON answer: ' . $body);
         }
 
-        $body    = $response->getBody()->getContents();
-        $decoded = Utils::jsonDecode($body, true);
+        if (!array_key_exists('data', $decoded)) {
+            throw new InvalidArgumentException('Missing a key data ' . $body);
+        }
+
+        return $decoded['data'];
+    }
+
+    /**
+     * Get all records from server
+     *
+     * Receive a response from another server,
+     * if date not set, then we issue default response
+     *
+     * @param $id
+     * @return array|null
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    private function getAll(): ?array
+    {
+        try {
+            $response = $this->connection->getClient()->request('GET', $this->customUrl, ['query' => ['per_page' => 0]]);
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('Not JSON answer: ' . $body);
+        }
 
         if (!array_key_exists('data', $decoded)) {
             throw new InvalidArgumentException('Missing a key data ' . $body);
@@ -105,27 +154,25 @@ class ApiModelBaseQueryBuilder extends Builder
 
     /**
      * @param \Illuminate\Database\ConnectionInterface $connection Connection to remote API
+     * @param string|null $customUrl Custom additional uri fragment
      */
     public function __construct(ConnectionInterface $connection, ?string $customUrl = null)
     {
         $this->connection = $connection;
-
         $this->customUrl = $customUrl;
     }
 
+    /**
+     * Execute the query as a "select" statement.
+     *
+     * @param  array|string  $columns
+     * @return \Illuminate\Support\Collection
+     */
     public function get($columns = ['*'])
     {
-        $search = [];
-
         if (!empty($this->wheres)) {
-
             foreach ($this->wheres as $where) {
-
-                if (array_key_exists('query', $where)) {
-
-                    $search = $where['query']->wheres;
-
-                } else if ($where['column'] === $this->defaultKeyName() && $where['operator'] === '=') {
+                if ($where['column'] === $this->defaultKeyName() && $where['operator'] === '=') {
                     //get by id
                     $record = $this->getOne($where['value']);
 
@@ -133,6 +180,7 @@ class ApiModelBaseQueryBuilder extends Builder
                     if (!$record) {
                         return collect([]);
                     }
+
                     //if there is record, return single-element array
                     return collect([$record]);
                 } else {
@@ -141,58 +189,36 @@ class ApiModelBaseQueryBuilder extends Builder
             }
         }
 
-        $models = $this->list()->models;
-
-        if (!empty($this->orders) || !empty($search)) {
-
-            $page = $this->offset / $this->limit;
-
-            $models = $this->getOrderBy([
-                'column'    => $this->orders[0]['column'],
-                'direction' => $this->orders[0]['direction'],
-                'search'    => count($search) ? json_encode($search) : [],
-                'per_page'  => $this->limit,
-                'page'      => $page,
-            ])->models;
+        //if limit not set, then return all records without pagination
+        if ($this->limit ?? null) {
+            $records = $this->list()->models;
+        } else {
+            $records = $this->getAll();
         }
 
-        return collect($models);
+        return collect($records);
     }
 
     /**
-     * Запрос с сортировкой и пагинацией
+     * Get the count of the total records for the paginator.
      *
-     * В параметрах приходит массив с необходимой сортировкой
-     * значением поиска и пагинация
+     * @param  array  $columns
+     * @return int
      */
-    public function getOrderBy(array $order): ?ListOfModels
-    {
-        $response = $this->connection->getClient()->request('GET', $this->customUrl, ['query' => [
-            'column'    => $order['column'],
-            'direction' => $order['direction'],
-            'search'    => $order['search'],
-            'per_page'  => $order['per_page'],
-            'page'      => $order['page'] + 1,
-        ]]);
-
-        $body = $response->getBody()->getContents();
-
-        try {
-            $decoded = Utils::jsonDecode($body, true);
-        } catch (InvalidArgumentException) {
-            throw new InvalidArgumentException('Not JSON answer: ' . $body);
-        }
-
-        $models = $this->getListOfModels($decoded);
-
-        return $models ?? $this->listOfModels;
-    }
-
-    public function getCountForPagination($columns = ['*']): int
+    public function getCountForPagination($columns = ['*'])
     {
         return $this->list()->meta->total;
     }
 
+    /**
+     * Add a basic where clause to the query.
+     *
+     * @param  \Closure|string|array  $column
+     * @param  mixed  $operator
+     * @param  mixed  $value
+     * @param  string  $boolean
+     * @return $this
+     */
     public function where($column, $operator = null, $value = null, $boolean = 'and')
     {
         $this->wheres[] = compact(
@@ -202,14 +228,23 @@ class ApiModelBaseQueryBuilder extends Builder
         return $this;
     }
 
+    /**
+     * Save a new model and return data from remote server.
+     *
+     * @param  array  $attributes
+     * @return array
+     */
     public function create(array $attributes = [])
     {
-        $response = $this->connection->getClient()->request('POST', $this->customUrl, [
-            'form_params' => $attributes,
-        ]);
-
-        $body    = $response->getBody()->getContents();
-        $decoded = Utils::jsonDecode($body, true);
+        try {
+            $response = $this->connection->getClient()->request('POST', $this->customUrl, [
+                'form_params' => $attributes,
+            ]);
+            $body = $response->getBody()->getContents();
+            $decoded = Utils::jsonDecode($body, true);
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('Not JSON answer: ' . $body);
+        }
 
         if (!array_key_exists('data', $decoded)) {
             throw new InvalidArgumentException('Missing a key data ' . $body);

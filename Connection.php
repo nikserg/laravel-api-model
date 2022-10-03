@@ -2,12 +2,8 @@
 
 namespace nikserg\LaravelApiModel;
 
-
-use Closure;
 use GuzzleHttp\Client;
-use Illuminate\Database\ConnectionInterface;
 use Illuminate\Database\Query\Builder;
-use Spatie\LaravelIgnition\Exceptions\InvalidConfig;
 
 /**
  * Base settings for connection to host

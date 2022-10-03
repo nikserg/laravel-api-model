@@ -2,13 +2,7 @@
 
 namespace nikserg\LaravelApiModel;
 
-use CrmCoreClients\Auth\AuthClient;
-use CrmCoreCommon\Permissions\Common;
-use Illuminate\Container\Container;
 use Illuminate\Database\DatabaseManager;
-use Illuminate\Foundation\Application;
-use Illuminate\Queue\QueueManager;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -28,13 +22,10 @@ class ApiModelServiceProvider extends ServiceProvider
     public function register()
     {
         // Add database driver.
-        $this->app->resolving('db', function (DatabaseManager $db)
-        {
-            $db->extend('api', function ($config, $name)
-            {
+        $this->app->resolving('db', function (DatabaseManager $db) {
+            $db->extend('api', function ($config, $name) {
                 return new Connection($config['baseUri'], $config['verify'] ?? true, $config['configurator'] ?? null);
             });
         });
-
     }
 }
