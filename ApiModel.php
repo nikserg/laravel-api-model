@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 /**
  * Extend this model to use Eloquent with API-requests
@@ -132,8 +133,7 @@ class ApiModel extends Model
             $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getCurrentId());
 
             return true;
-
-        } catch (NotFoundHttpException $e) {
+        } catch (Throwable $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
     }
