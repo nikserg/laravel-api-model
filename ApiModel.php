@@ -6,10 +6,12 @@ use GuzzleHttp\Utils;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\MySqlConnection;
+use Illuminate\Routing\Route;
 use InvalidArgumentException;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 /**
  * Extend this model to use Eloquent with API-requests
@@ -24,11 +26,18 @@ class ApiModel extends Model
     protected static $unguarded = true;
     public $incrementing        = false;
 
+    /**
+     * @param $query
+     * @return ApiModelEloquentBuilder
+     */
     public function newEloquentBuilder($query): ApiModelEloquentBuilder
     {
         return new ApiModelEloquentBuilder($query);
     }
 
+    /**
+     * @return Builder
+     */
     public function newBaseQueryBuilder(): Builder
     {
         return new ApiModelBaseQueryBuilder(
@@ -37,6 +46,10 @@ class ApiModel extends Model
         );
     }
 
+    /**
+     * @param $column
+     * @return string
+     */
     public function qualifyColumn($column): string
     {
         return $column; //Otherwise here would be <table name>.id
@@ -50,28 +63,28 @@ class ApiModel extends Model
      */
     public function getDateFormat() //TODO
     {
-
     }
 
     /**
      * Срабатывает перед методами update & delete
+     *
+     * @return ApiModel
      */
     public function findOrFail($id, $columns = ['*']): ApiModel
     {
-        return $this->getModel()->fill([$id]);
+        return $this->getModel();
     }
 
     /**
      * Обновление записи
      *
-     * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
-     * поэтому $this->getAttributes[0] - не может быть без id
+     * @return ApiModel
      */
     public function update(array $attributes = [], array $options = []): ApiModel
     {
         try {
             $response = $this->getConnection()->getClient()->request('PUT',
-            $this->getCustomUrl() . '/' . $this->getIdBeforeSave(),
+            $this->getCustomUrl() . '/' . $this->getCurrentId(),
             [
                 'json' => $attributes
             ]);
@@ -91,6 +104,8 @@ class ApiModel extends Model
 
     /**
      * Получение пользовательского url для модели
+     *
+     * @return string
      */
     protected function getCustomUrl(): string
     {
@@ -98,30 +113,27 @@ class ApiModel extends Model
     }
 
     /**
-     * Получение primary key
+     * Получение текущего идентификатора из реквеста
      *
-     * Перед вызовом этой функции в findOrFail в модель определили primary key
+     * @return mixed
      */
-    public function getIdBeforeSave(): mixed
+    public function getCurrentId(): mixed
     {
-        return $this->getAttributes()[0];
+        return request()->route('id');
     }
 
     /**
      * Удаление записи
      *
-     * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
-     * поэтому $this->getAttributes[0] - не может быть без id
+     * @return ?bool
      */
     public function delete(): ?bool
     {
         try {
-            $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getIdBeforeSave());
+            $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getCurrentId());
 
             return true;
-
-        } catch (NotFoundHttpException $e) {
-
+        } catch (Throwable $e) {
             throw new NotFoundHttpException($e->getMessage());
         }
     }
