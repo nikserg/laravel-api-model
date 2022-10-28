@@ -25,11 +25,18 @@ class ApiModel extends Model
     protected static $unguarded = true;
     public $incrementing        = false;
 
+    /**
+     * @param $query
+     * @return ApiModelEloquentBuilder
+     */
     public function newEloquentBuilder($query): ApiModelEloquentBuilder
     {
         return new ApiModelEloquentBuilder($query);
     }
 
+    /**
+     * @return Builder
+     */
     public function newBaseQueryBuilder(): Builder
     {
         return new ApiModelBaseQueryBuilder(
@@ -38,6 +45,10 @@ class ApiModel extends Model
         );
     }
 
+    /**
+     * @param $column
+     * @return string
+     */
     public function qualifyColumn($column): string
     {
         return $column; //Otherwise here would be <table name>.id
@@ -51,11 +62,12 @@ class ApiModel extends Model
      */
     public function getDateFormat() //TODO
     {
-
     }
 
     /**
      * Срабатывает перед методами update & delete
+     *
+     * @return ApiModel
      */
     public function findOrFail($id, $columns = ['*']): ApiModel
     {
@@ -65,15 +77,11 @@ class ApiModel extends Model
     /**
      * Обновление записи
      *
-     * findOrFail вызывается перед  update, мы метод переопределили и закинули в модель id
-     * поэтому $this->getAttributes[0] - не может быть без id
+     * @return ApiModel
      */
     public function update(array $attributes = [], array $options = []): ApiModel
     {
         try {
-            if (empty($attributes['id'])) {
-                unset($attributes['id']);
-            }
             $response = $this->getConnection()->getClient()->request('PUT',
             $this->getCustomUrl() . '/' . $this->getCurrentId(),
             [
@@ -95,6 +103,8 @@ class ApiModel extends Model
 
     /**
      * Получение пользовательского url для модели
+     *
+     * @return string
      */
     protected function getCustomUrl(): string
     {
@@ -104,6 +114,7 @@ class ApiModel extends Model
     /**
      * Получение текущего идентификатора из реквеста
      *
+     * @return mixed
      */
     public function getCurrentId(): mixed
     {
@@ -113,8 +124,7 @@ class ApiModel extends Model
     /**
      * Удаление записи
      *
-     * findOrFail вызывается перед delete, мы метод переопределили и закинули в модель id
-     * поэтому $this->getAttributes[0] - не может быть без id
+     * @return ?bool
      */
     public function delete(): ?bool
     {
@@ -124,7 +134,6 @@ class ApiModel extends Model
             return true;
 
         } catch (NotFoundHttpException $e) {
-
             throw new NotFoundHttpException($e->getMessage());
         }
     }
