@@ -6,6 +6,7 @@ use GuzzleHttp\Utils;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\MySqlConnection;
+use Illuminate\Routing\Route;
 use InvalidArgumentException;
 use nikserg\LaravelApiModel\Exception\NotImplemented;
 use Symfony\Component\HttpFoundation\Response;
@@ -58,7 +59,7 @@ class ApiModel extends Model
      */
     public function findOrFail($id, $columns = ['*']): ApiModel
     {
-        return $this->getModel()->fill([$id]);
+        return $this->getModel();
     }
 
     /**
@@ -70,8 +71,11 @@ class ApiModel extends Model
     public function update(array $attributes = [], array $options = []): ApiModel
     {
         try {
+            if (empty($attributes['id'])) {
+                unset($attributes['id']);
+            }
             $response = $this->getConnection()->getClient()->request('PUT',
-            $this->getCustomUrl() . '/' . $this->getIdBeforeSave(),
+            $this->getCustomUrl() . '/' . $this->getCurrentId(),
             [
                 'json' => $attributes
             ]);
@@ -98,13 +102,12 @@ class ApiModel extends Model
     }
 
     /**
-     * Получение primary key
+     * Получение текущего идентификатора из реквеста
      *
-     * Перед вызовом этой функции в findOrFail в модель определили primary key
      */
-    public function getIdBeforeSave(): mixed
+    public function getCurrentId(): mixed
     {
-        return $this->getAttributes()[0];
+        return request()->route('id');
     }
 
     /**
@@ -116,7 +119,7 @@ class ApiModel extends Model
     public function delete(): ?bool
     {
         try {
-            $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getIdBeforeSave());
+            $this->getConnection()->getClient()->request('DELETE', $this->getCustomUrl() . '/' . $this->getCurrentId());
 
             return true;
 
